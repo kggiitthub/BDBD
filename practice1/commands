@@ -1,0 +1,35 @@
+1. コンテナのビルドと起動作成したフォルダで以下のコマンドを実行し、Linuxサーバーをバックグラウンドで起動します。
+docker compose up -d --build
+
+2. LinuxサーバーのIPアドレスを調べるDockerがコンテナに自動で割り当てたプライベートIPアドレスを、以下のコマンドで書き留めてもらいます。
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' linux_study_server
+
+3. IPアドレスを使ってSSH接続するホストPC（自分のパソコン）のターミナルを開き、先ほど調べたIPアドレスを入力して接続します。
+ssh root@<調べたIPアドレス>
+
+初回接続時の確認 Are you sure you want to continue connecting (yes/no/[fingerprint])? には yes と入力します。パスワードを求められたら root と入力します。
+
+
+ホストOSIPアドレスへの直接SSH接続原因と対策Linux (Ubuntu等)🟢 そのまま接続可能ホストOSとDockerネットワークが直接繋がっているため。macOS / Windows🔴 基本は接続不可Dockerが仮想マシン（VM）上で動いているため、ホストPCからコンテナのIP（172.xx.xx.xx）へのルートが存在しません。
+
+1. まずはコンテナの内部に入るホストPC（WindowsのPowerShellやMacのターミナル）から、以下のコマンドでUbuntuコンテナの内部（bashシェル）に潜り込みます。bashdocker exec -it linux_study_server bash
+コードは注意してご使用ください。※実行後、プロンプトが root@xxxxxxxxx:/# のような表記に変われば成功です。2. 自分自身のIPアドレスを調査するコンテナの中で、Linuxのネットワーク確認コマンドを実行し、自分のIPアドレスを調べます。baship route show | awk '/src/ {print $7}'
+コードは注意してご使用ください。※実行すると 172.18.0.2 のようなIPアドレスが画面に1行だけ表示されます。これをメモします。3. 調べたIPアドレスに対してSSH接続する（擬似体験）先ほど調べたyIPアドレスを指定して、自分自身（自分の中のSSHサーバー）に接続します。
+
+3. コンテナ内部で、別名ファイルとしてSCP転送を試すコンテナ内で、本来ホストから送るはずだったコマンドを自分自身に向けて実行します。/workspace/sample.txt を、同じフォルダに copied_test.txt という名前で転送してみます。bashscp /workspace/sample.txt root@<コンテナのIPアドレス>:/workspace/copied_test.txt
+コードは注意してご使用ください。コマンド例: scp /workspace/sample.txt root@172.18.0.2:/workspace/copied_test.txtパスワード: root確認: ls /workspace を実行し、copied_test.txt が生成されていれば成功です。🧑‍🏫 講師から受講生への解説ポイント「SCPはSSHと同じ仕組み」SCPはSSHの仕組み（ポート22番、暗号化通信、パスワード認証）をそのまま使ってファイルを安全にコピーするコマンドであることを説明すると
+2. 自分自身のIPアドレスを調査するコンテナの中で、Linuxのネットワーク確認コマンドを実行し、自分のIPアドレスを調べます。baship route show | awk '/src/ {print $7}'
+コードは注意してご使用ください。※実行すると 172.18.0.2 のようなIPアドレスが画面に1行だけ表示されま
+
+
+3. 調べたIPアドレスに対してSSH接続する（擬似体験）先ほど調べたIPアドレスを指定して、自分自身（自分の中のSSHサーバー）に接続します。bashssh root@<ステップ2で調べたIPアドレス>
+コードは注意してご使用ください。💡 コマンド例: ssh root@172.18.0.2
+
+4. パスワードを入力してログインする初めての接続確認メッセージが出たら yes と入力し、パスワードを求められたら root と入力します。textAre you sure you want to continue connecting (yes/no/[fingerprint])? yes
+root@172.18.0.2's password: root
+
+「localhostでも繋がる」ステップ3で、IPアドレスの代わりに ssh root@localhost や ssh root@127.0.0.1 でも繋がることを試してもらうと、ループバックアドレスの概念も同時に学べます。
+
+ コンテナ内部で、別名ファイルとしてSCP転送を試すコンテナ内で、本来ホストから$
+コードは注意してご使用ください。コマンド例: scp /workspace/sample.txt root@172.$
+

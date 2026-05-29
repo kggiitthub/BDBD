@@ -1,0 +1,9 @@
+services:
+  linux-learning:
+    build: .
+    container_name: linux_study_server
+    restart: always
+    ports:
+      - "8888:8888"
+      - "2222:22"
+

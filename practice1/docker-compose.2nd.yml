@@ -1,0 +1,13 @@
+services:
+  linux-learning:
+    build:
+      context: .
+      dockerfile: Dockerfile.2nd
+    container_name: linux_study_server
+    restart: always
+    volumes:
+      - ./workspace:/workspace
+    ports:
+      - "8888:8888"
+      - "2222:22"
+
