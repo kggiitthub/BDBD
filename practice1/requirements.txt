@@ -3,3 +3,5 @@ matplotlib
 jupyterlab
 ipywidgets
 notebook
+scikit-learn
+pandas

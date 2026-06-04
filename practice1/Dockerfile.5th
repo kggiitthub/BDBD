@@ -1,0 +1,71 @@
+FROM ubuntu:24.04
+
+# 環境変数の設定（対話型プロンプトの回避とパスの設定）
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH=/opt/conda/bin:$PATH
+
+# 必要最低限のツール、SSHサーバー、nanoのインストール
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    iproute2 \
+    iputils-ping \
+    nano \
+    curl \
+    wget \
+    bzip2 \
+    ca-certificates \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Anaconda3 / Miniconda (アーキテクチャに応じて切替) のインストール ---
+RUN set -eux; \
+    ARCH="$(uname -m)"; \
+    if [ "$ARCH" = "x86_64" ]; then \
+        ANACONDA_URL="https://repo.anaconda.com/archive/Anaconda3-2023.11-Linux-x86_64.sh"; \
+        INSTALLER=/tmp/anaconda.sh; \
+    else \
+        ANACONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"; \
+        INSTALLER=/tmp/miniconda.sh; \
+    fi; \
+    wget --quiet "$ANACONDA_URL" -O "$INSTALLER"; \
+    /bin/bash "$INSTALLER" -b -p /opt/conda; \
+    rm -f "$INSTALLER"; \
+    /opt/conda/bin/conda init bash; \
+    echo "export PATH=/opt/conda/bin:\$PATH" >> /etc/profile
+
+# ビルド時に JupyterLab をインストールしておく
+# Copy requirements and install via conda's pip
+COPY requirements.txt /tmp/requirements.txt
+RUN /opt/conda/bin/pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm -rf /root/.cache/pip /tmp/requirements.txt
+
+# SSHの設定（rootログインの許可とパスワード認証の有効化）
+RUN mkdir /var/run/sshd
+RUN echo 'root:root' | chpasswd
+# パスワード認証を無効化して鍵認証を推奨（root のパスワードログインは制限）
+RUN sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config \
+ && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config || true
+RUN sed -i 's/^#\?UsePAM.*/UsePAM yes/' /etc/ssh/sshd_config || true
+
+# 公開鍵を配置
+COPY keys/authorized_keys /root/.ssh/authorized_keys
+RUN mkdir -p /root/.ssh \
+ && chown root:root /root/.ssh/authorized_keys || true \
+ && chmod 700 /root/.ssh || true \
+ && chmod 600 /root/.ssh/authorized_keys || true
+
+# SSHポートとJupyterポートの開放
+EXPOSE 22 8888
+
+# ログイン時に自動でMinicondaのbase環境を起動する設定
+RUN echo "conda activate base" >> ~/.bashrc
+RUN echo "conda activate base" >> /etc/profile
+
+
+# 永続起動スクリプトを追加（SSHD と Jupyter を起動、認証は env で制御）
+# start.sh をイメージへコピーし実行権限を付与する
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
+# コンテナ起動時に start.sh を実行（SSHD と Jupyter を起動）
+CMD ["/usr/local/bin/start.sh"]

@@ -1,0 +1,14 @@
+services:
+  linux-learning:
+    build:
+      context: .
+      dockerfile: Dockerfile.5th
+    container_name: linux_study_server
+    restart: always
+    volumes:
+      - ./workspace:/workspace
+    ports:
+      - "8888:8888"
+      - "2222:22"
+    environment:
+      - JUPYTER_TOKEN=BDBD_token
